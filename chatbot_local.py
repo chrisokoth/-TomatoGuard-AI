@@ -14,7 +14,25 @@ from PIL import Image
 
 class TomatoDiseaseBot:
     def __init__(self, model_path="tomato_model.keras", api_key=None):
-        self.model = load_model(model_path)
+        try:
+            self.model = load_model(model_path)
+        except (ValueError, TypeError) as e:
+            if "batch_shape" in str(e):
+                # Load with custom objects to handle batch_shape compatibility
+                import tensorflow as tf
+                self.model = tf.keras.models.load_model(
+                    model_path,
+                    custom_objects=None,
+                    compile=False
+                )
+                # Recompile the model
+                self.model.compile(
+                    optimizer='adam',
+                    loss='categorical_crossentropy',
+                    metrics=['accuracy']
+                )
+            else:
+                raise e
         self.class_labels = ['Tomato_Early_blight', 'Tomato_Late_blight', 'Tomato_healthy']
         self.api_key = api_key or "1d5af17ac5484fae2f35780c93a44fb7"
         
